@@ -53,11 +53,59 @@ SECRETARY_TELEGRAM_ID=123456789
 - `BOT_TOKEN` — получите у [@BotFather](https://t.me/BotFather)
 - `SECRETARY_TEGRAM_ID` — Telegram ID секретаря (опционально, для уведомлений)
 
-## 🎮 Запуск
+## 🎮 Запуск (локально)
 
 ```bash
 python main.py
 ```
+
+## 🚀 Деплой на Railway
+
+Бот готов к деплою на [Railway](https://railway.com). Следуйте инструкциям:
+
+### 1. Подготовка
+
+Убедитесь, что проект запушен на GitHub:
+```bash
+git push origin master
+```
+
+### 2. Создание проекта на Railway
+
+1. Перейдите на [Railway Dashboard](https://railway.com/dashboard)
+2. Нажмите **"New Project"** → **"Deploy from GitHub repo"**
+3. Выберите репозиторий `holiday_PML_bot`
+4. Railway автоматически обнаружит `railway.toml` и `Procfile`
+
+### 3. Настройка переменных окружения
+
+В настройках проекта на Railway добавьте переменные:
+
+| Переменная | Значение | Описание |
+|------------|----------|----------|
+| `BOT_TOKEN` | `8929817821:AAGsy-296jmNKWVcFt0CCRRINcRL1HluOy4` | Токен бота |
+| `DATABASE_URL` | `sqlite:///data/school_bot.db` | Путь к БД (сохраняется между деплоями) |
+| `SECRETARY_TELEGRAM_ID` | `123456789` | ID секретаря для уведомлений |
+
+### 4. Добавление Volume для сохранения данных
+
+Чтобы база данных не терялась при перезапуске:
+
+1. В Railway Dashboard перейдите в **Settings** проекта
+2. Добавьте **Volume** с mount path: `/app/data`
+3. Измените `DATABASE_URL` на `sqlite:///data/school_bot.db`
+
+### 5. Деплой
+
+Railway автоматически деплоит бот при каждом пуше в `master`. 
+
+Для ручного деплоя: **Deploy → Deploy Now**
+
+### 📊 Мониторинг
+
+- Логи: **Deployments → Logs**
+- Метрики: **Metrics** (CPU, Memory)
+- Перезапуск: **Restart** в случае ошибок
 
 ## 📁 Структура проекта
 
@@ -69,6 +117,8 @@ python main.py
 ├── keyboards.py           # Клавиатуры
 ├── requirements.txt       # Зависимости
 ├── .env.example           # Пример переменных окружения
+├── railway.toml           # Конфигурация деплоя на Railway
+├── Procfile               # Команда запуска для Railway
 ├── database/
 │   ├── __init__.py
 │   ├── models.py          # SQLAlchemy модели
