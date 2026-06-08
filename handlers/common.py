@@ -3,9 +3,9 @@ from aiogram.types import Message
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from sqlalchemy import select
-from database import SessionLocal, User, UserRole
+from database import SessionLocal, User, UserRole, BroadcastMessage
 from keyboards import role_selection, teacher_main_menu, secretary_main_menu
-from states import Registration
+from states import Registration, PMLBroadcast
 
 router = Router()
 
@@ -85,5 +85,65 @@ async def process_role(message: Message, state: FSMContext):
             "Выберите действие:",
             reply_markup=secretary_main_menu()
         )
-    
+
     await state.clear()
+
+
+@router.message(Command("pml"))
+async def cmd_pml(message: Message, state: FSMContext):
+    """Subscribe to PML broadcast messages."""
+    async with SessionLocal() as session:
+        result = await session.execute(
+            select(User).where(User.telegram_id == message.from_user.id)
+        )
+        user = result.scalar_one_or_none()
+
+        if not user:
+            await message.answer(
+                "❌ Сначала необходимо зарегистрироваться.\n"
+                "Нажмите /start для регистрации."
+            )
+            return
+
+        if user.pml_subscribed:
+            await message.answer(
+                "✅ Вы уже подписаны на рассылку PML!\n\n"
+                "Вы будете получать важные сообщения и уведомления."
+            )
+            return
+
+        # Subscribe user
+        user.pml_subscribed = 1
+        await session.commit()
+
+        await message.answer(
+            "✅ <b>Вы успешно подписались на рассылку PML!</b>\n\n"
+            "📢 Теперь вы будете получать:\n"
+            "• Важные объявления школы\n"
+            "• Напоминания о мероприятиях\n"
+            "• Экстренные уведомления\n\n"
+            "Чтобы отписаться, используйте команду /pml_off",
+            parse_mode="HTML"
+        )
+
+
+@router.message(Command("pml_off"))
+async def cmd_pml_off(message: Message):
+    """Unsubscribe from PML broadcast messages."""
+    async with SessionLocal() as session:
+        result = await session.execute(
+            select(User).where(User.telegram_id == message.from_user.id)
+        )
+        user = result.scalar_one_or_none()
+
+        if not user or not user.pml_subscribed:
+            await message.answer("❌ Вы не подписаны на рассылку.")
+            return
+
+        user.pml_subscribed = 0
+        await session.commit()
+
+        await message.answer(
+            "✅ Вы отписались от рассылки PML.\n\n"
+            "Чтобы снова подписаться, используйте /pml"
+        )

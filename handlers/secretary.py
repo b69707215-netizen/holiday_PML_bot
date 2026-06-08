@@ -3,10 +3,10 @@ from aiogram.types import Message, CallbackQuery, FSInputFile
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from sqlalchemy import select, desc, func
-from database import SessionLocal, User, Vacation, Order, UserRole, VacationStatus
-from keyboards import secretary_main_menu, order_type_selection, vacation_approval, cancel_button
+from database import SessionLocal, User, Vacation, Order, BroadcastMessage, UserRole, VacationStatus
+from keyboards import secretary_main_menu, order_type_selection, vacation_approval, cancel_button, pml_broadcast_confirm
 from services.doc_generator import generate_vacation_order, generate_order_from_template
-from states import SearchTeacher
+from states import SearchTeacher, PMLBroadcast
 import os
 
 router = Router()
@@ -342,6 +342,122 @@ async def show_teacher_details(message: Message, teacher: User):
             response += "📅 История отпусков: нет записей"
 
         await message.answer(response, parse_mode="HTML", reply_markup=secretary_main_menu())
+
+@router.message(F.text == "📢 Рассылка PML")
+async def start_pml_broadcast(message: Message, state: FSMContext):
+    """Start PML broadcast - only for secretary."""
+    async with SessionLocal() as session:
+        result = await session.execute(
+            select(User).where(User.telegram_id == message.from_user.id)
+        )
+        user = result.scalar_one_or_none()
+
+        if not user or user.role != UserRole.SECRETARY:
+            await message.answer("❌ Эта функция доступна только секретарю.")
+            return
+
+        # Count subscribed users
+        subscribed_result = await session.execute(
+            select(func.count(User.id)).where(User.pml_subscribed == 1)
+        )
+        subscribed_count = subscribed_result.scalar()
+
+        await message.answer(
+            f"📢 <b>Создание рассылки PML</b>\n\n"
+            f"👥 Подписано пользователей: {subscribed_count}\n\n"
+            f"Введите текст сообщения для рассылки:",
+            parse_mode="HTML",
+            reply_markup=cancel_button()
+        )
+        await state.set_state(PMLBroadcast.message_text)
+
+
+@router.message(PMLBroadcast.message_text, F.text == "❌ Отмена")
+async def cancel_pml_broadcast(message: Message, state: FSMContext):
+    await state.clear()
+    await message.answer(
+        "❌ Рассылка отменена. Выберите действие:",
+        reply_markup=secretary_main_menu()
+    )
+
+
+@router.message(PMLBroadcast.message_text)
+async def process_pml_message(message: Message, state: FSMContext):
+    """Save message text and ask for confirmation."""
+    await state.update_data(message_text=message.text)
+
+    await message.answer(
+        f"📢 <b>Предпросмотр сообщения:</b>\n\n"
+        f"{message.text}\n\n"
+        f"Подтвердите отправку:",
+        parse_mode="HTML",
+        reply_markup=pml_broadcast_confirm()
+    )
+    await state.set_state(PMLBroadcast.confirm)
+
+
+@router.message(PMLBroadcast.confirm, F.text == "✅ Отправить рассылку")
+async def send_pml_broadcast(message: Message, state: FSMContext, bot: Bot):
+    """Send broadcast to all subscribed users."""
+    data = await state.get_data()
+    message_text = data.get("message_text")
+
+    async with SessionLocal() as session:
+        # Get sender
+        result = await session.execute(
+            select(User).where(User.telegram_id == message.from_user.id)
+        )
+        sender = result.scalar_one_or_none()
+
+        # Save broadcast to database
+        broadcast = BroadcastMessage(
+            message_text=message_text,
+            sender_id=sender.id
+        )
+        session.add(broadcast)
+
+        # Get all subscribed users
+        result = await session.execute(
+            select(User).where(User.pml_subscribed == 1)
+        )
+        subscribed_users = result.scalars().all()
+
+        sent_count = 0
+        failed_count = 0
+
+        # Send messages
+        for user in subscribed_users:
+            try:
+                await bot.send_message(
+                    user.telegram_id,
+                    f"📢 <b>Сообщение от администрации:</b>\n\n{message_text}",
+                    parse_mode="HTML"
+                )
+                sent_count += 1
+            except Exception:
+                failed_count += 1
+
+        broadcast.sent_count = sent_count
+        await session.commit()
+
+    await message.answer(
+        f"✅ <b>Рассылка завершена!</b>\n\n"
+        f"📤 Отправлено: {sent_count}\n"
+        f"❌ Не доставлено: {failed_count}",
+        parse_mode="HTML",
+        reply_markup=secretary_main_menu()
+    )
+    await state.clear()
+
+
+@router.message(PMLBroadcast.confirm, F.text == "❌ Отмена")
+async def cancel_pml_confirm(message: Message, state: FSMContext):
+    await state.clear()
+    await message.answer(
+        "❌ Рассылка отменена. Выберите действие:",
+        reply_markup=secretary_main_menu()
+    )
+
 
 @router.message(F.text == "❌ Отмена")
 async def cancel_action(message: Message, state: FSMContext):

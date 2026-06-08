@@ -13,8 +13,9 @@ def teacher_main_menu():
 def secretary_main_menu():
     builder = ReplyKeyboardBuilder()
     builder.button(text="📨 Новые заявки")
-    builder.button(text="� Найти учителя по ФИО")
-    builder.button(text="�👥 Список сотрудников")
+    builder.button(text="🔍 Найти учителя по ФИО")
+    builder.button(text="📢 Рассылка PML")
+    builder.button(text="👥 Список сотрудников")
     builder.button(text="📊 Мониторинг отпусков")
     builder.button(text="📄 Создать приказ")
     builder.adjust(2)
@@ -64,4 +65,12 @@ def cancel_button():
 def back_button():
     builder = ReplyKeyboardBuilder()
     builder.button(text="⬅️ Назад")
+    return builder.as_markup(resize_keyboard=True)
+
+# PML broadcast confirmation
+def pml_broadcast_confirm():
+    builder = ReplyKeyboardBuilder()
+    builder.button(text="✅ Отправить рассылку")
+    builder.button(text="❌ Отмена")
+    builder.adjust(2)
     return builder.as_markup(resize_keyboard=True)

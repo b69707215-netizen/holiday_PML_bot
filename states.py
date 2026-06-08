@@ -22,3 +22,7 @@ class BroadcastMessage(StatesGroup):
 
 class SearchTeacher(StatesGroup):
     full_name = State()
+
+class PMLBroadcast(StatesGroup):
+    message_text = State()
+    confirm = State()
