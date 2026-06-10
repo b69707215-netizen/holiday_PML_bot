@@ -5,3 +5,12 @@ builder = "nixpacks"
 startCommand = "python main.py"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 10
+
+[env]
+BOT_TOKEN = "8929817821:AAGsy-296jmNKWVcFt0CCRRINcRL1HluOy4"
+DATABASE_URL = "sqlite:///data/bot.db"
+SECRETARY_TELEGRAM_ID = "5091636029,5063427314"
+
+[[volumes]]
+mountPath = "/app/data"
+source = "data"
