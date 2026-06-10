@@ -4,7 +4,8 @@ from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 from config import BOT_TOKEN
 from database import init_db, SessionLocal, User
-from handlers import common_router, teacher_router, secretary_router
+from handlers import common_router, teacher_router, secretary_router, crm_router
+from services.crm_integration import init_crm_integration
 
 logging.basicConfig(
     level=logging.INFO,
@@ -27,6 +28,11 @@ async def main():
     dp.include_router(common_router)
     dp.include_router(teacher_router)
     dp.include_router(secretary_router)
+    dp.include_router(crm_router)
+    
+    # Initialize CRM integration
+    init_crm_integration(bot)
+    logger.info("CRM integration initialized")
     
     logger.info("Bot started successfully!")
     
