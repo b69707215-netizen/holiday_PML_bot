@@ -3,7 +3,7 @@
 """
 
 from aiogram import Router, F, Bot
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from services.crm_integration import get_crm_integration
@@ -116,22 +116,22 @@ async def crm_orders_menu(message: Message):
         await message.answer("❌ CRM интеграция не доступна")
         return
     
-    keyboard = {
-        "inline_keyboard": [
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
             [
-                {"text": "📄 Последние приказы", "callback_data": "crm_recent_orders"}
+                InlineKeyboardButton(text="📄 Последние приказы", callback_data="crm_recent_orders")
             ],
             [
-                {"text": "📊 Статус CRM", "callback_data": "crm_status"}
+                InlineKeyboardButton(text="📊 Статус CRM", callback_data="crm_status")
             ],
             [
-                {"text": "🧪 Тест интеграции", "callback_data": "crm_test"}
+                InlineKeyboardButton(text="🧪 Тест интеграции", callback_data="crm_test")
             ],
             [
-                {"text": "🔙 Назад", "callback_data": "back_to_main"}
+                InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_main")
             ]
         ]
-    }
+    )
     
     await message.answer(
         "📋 <b>Управление CRM приказами</b>\n\n"
@@ -161,7 +161,10 @@ async def callback_crm_test(callback: CallbackQuery):
 @router.callback_query(F.data == "back_to_main")
 async def callback_back_to_main(callback: CallbackQuery):
     """Возврат в главное меню"""
-    await callback.message.edit_text(
+    # Сначала удаляем инлайн-меню, чтобы не путать пользователя
+    await callback.message.delete()
+    # Отправляем новое сообщение с обычной клавиатурой
+    await callback.message.answer(
         "🔙 Возврат в главное меню",
         reply_markup=secretary_main_menu()
     )

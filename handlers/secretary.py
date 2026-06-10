@@ -1,5 +1,5 @@
 from aiogram import Router, F, Bot
-from aiogram.types import Message, CallbackQuery, FSInputFile
+from aiogram.types import Message, CallbackQuery, FSInputFile, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from sqlalchemy import select, desc, func
@@ -508,14 +508,14 @@ async def process_end_date(message: Message, state: FSMContext):
     await state.update_data(end_date=message.text)
     
     # Предлагаем варианты типа отпуска
-    keyboard = {
-        "inline_keyboard": [
-            [{"text": "Ежегодный", "callback_data": "vac_type:ежегодный"}],
-            [{"text": "Дополнительный", "callback_data": "vac_type:дополнительный"}],
-            [{"text": "Учебный", "callback_data": "vac_type:учебный"}],
-            [{"text": "Без сохранения зарплаты", "callback_data": "vac_type:без_зарплаты"}]
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="Ежегодный", callback_data="vac_type:ежегодный")],
+            [InlineKeyboardButton(text="Дополнительный", callback_data="vac_type:дополнительный")],
+            [InlineKeyboardButton(text="Учебный", callback_data="vac_type:учебный")],
+            [InlineKeyboardButton(text="Без сохранения зарплаты", callback_data="vac_type:без_зарплаты")]
         ]
-    }
+    )
     
     await message.answer(
         f"✅ Дата окончания: {message.text}\n\n"
@@ -556,12 +556,12 @@ async def process_reason(message: Message, state: FSMContext):
         f"✅ Создать приказ?"
     )
     
-    keyboard = {
-        "inline_keyboard": [
-            [{"text": "✅ Создать", "callback_data": "vac_order:create"}],
-            [{"text": "❌ Отмена", "callback_data": "vac_order:cancel"}]
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="✅ Создать", callback_data="vac_order:create")],
+            [InlineKeyboardButton(text="❌ Отмена", callback_data="vac_order:cancel")]
         ]
-    }
+    )
     
     await message.answer(summary, reply_markup=keyboard, parse_mode="HTML")
     await state.set_state(VacationOrderState.confirm)
