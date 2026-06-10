@@ -8,7 +8,7 @@ from keyboards import teacher_main_menu, cancel_button, vacation_approval
 from states import VacationRequest
 from datetime import datetime, date
 from aiogram.types import CallbackQuery
-from config import SECRETARY_TELEGRAM_ID
+from config import SECRETARY_IDS
 
 router = Router()
 
@@ -205,11 +205,11 @@ async def process_confirm(message: Message, state: FSMContext, bot: Bot):
         session.add(new_vacation)
         await session.commit()
 
-        # Notify secretary if configured
-        if SECRETARY_TELEGRAM_ID:
+        # Notify all secretaries if configured
+        for secretary_id in SECRETARY_IDS:
             try:
                 await bot.send_message(
-                    int(SECRETARY_TELEGRAM_ID),
+                    secretary_id,
                     f"📨 <b>Новая заявка на отпуск!</b>\n\n"
                     f"👤 <b>{user.full_name}</b>\n"
                     f"📞 Телефон: {user.phone}\n"

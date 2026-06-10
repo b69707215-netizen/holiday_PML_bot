@@ -434,8 +434,9 @@ async def send_pml_broadcast(message: Message, state: FSMContext, bot: Bot):
                     parse_mode="HTML"
                 )
                 sent_count += 1
-            except Exception:
+            except Exception as e:
                 failed_count += 1
+                print(f"Failed to send to {user.telegram_id}: {e}")
 
         broadcast.sent_count = sent_count
         await session.commit()
