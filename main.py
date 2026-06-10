@@ -4,8 +4,9 @@ from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 from config import BOT_TOKEN
 from database import init_db, SessionLocal, User
-from handlers import common_router, teacher_router, secretary_router, crm_router
+from handlers import common_router, teacher_router, secretary_router, crm_router, document_upload_router
 from services.crm_integration import init_crm_integration
+from services.telegram_to_crm import init_telegram_to_crm
 
 logging.basicConfig(
     level=logging.INFO,
@@ -29,10 +30,12 @@ async def main():
     dp.include_router(teacher_router)
     dp.include_router(secretary_router)
     dp.include_router(crm_router)
+    dp.include_router(document_upload_router)
     
-    # Initialize CRM integration
+    # Initialize CRM integrations
     init_crm_integration(bot)
-    logger.info("CRM integration initialized")
+    init_telegram_to_crm()
+    logger.info("CRM integrations initialized")
     
     logger.info("Bot started successfully!")
     
