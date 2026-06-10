@@ -6,7 +6,8 @@ from sqlalchemy import select, desc, func
 from database import SessionLocal, User, Vacation, Order, BroadcastMessage, UserRole, VacationStatus
 from keyboards import secretary_main_menu, order_type_selection, vacation_approval, cancel_button, pml_broadcast_confirm
 from services.doc_generator import generate_vacation_order, generate_order_from_template
-from states import SearchTeacher, PMLBroadcast
+from services.crm_integration import get_vacation_creator
+from states import SearchTeacher, PMLBroadcast, VacationOrderState
 import os
 
 router = Router()
@@ -467,3 +468,173 @@ async def cancel_action(message: Message, state: FSMContext):
         "❌ Действие отменено. Выберите действие:",
         reply_markup=secretary_main_menu()
     )
+
+# ==================== HANDLERS FOR VACATION ORDERS ====================
+
+@router.message(F.text == "📄 Создать приказ")
+@router.message(Command("create_vacation_order"))
+async def start_vacation_order_creation(message: Message, state: FSMContext):
+    """Начало создания отпускного приказа"""
+    await message.answer(
+        "📄 <b>Создание отпускного приказа</b>\n\n"
+        "Введите ФИО сотрудника:",
+        parse_mode="HTML"
+    )
+    await state.set_state(VacationOrderState.employee_name)
+
+@router.message(VacationOrderState.employee_name)
+async def process_employee_name(message: Message, state: FSMContext):
+    """Обработка ФИО сотрудника"""
+    await state.update_data(employee_name=message.text)
+    await message.answer(
+        f"✅ ФИО: {message.text}\n\n"
+        "Введите дату начала отпуска (ДД.ММ.ГГГГ):"
+    )
+    await state.set_state(VacationOrderState.start_date)
+
+@router.message(VacationOrderState.start_date)
+async def process_start_date(message: Message, state: FSMContext):
+    """Обработка даты начала отпуска"""
+    await state.update_data(start_date=message.text)
+    await message.answer(
+        f"✅ Дата начала: {message.text}\n\n"
+        "Введите дату окончания отпуска (ДД.ММ.ГГГГ):"
+    )
+    await state.set_state(VacationOrderState.end_date)
+
+@router.message(VacationOrderState.end_date)
+async def process_end_date(message: Message, state: FSMContext):
+    """Обработка даты окончания отпуска"""
+    await state.update_data(end_date=message.text)
+    
+    # Предлагаем варианты типа отпуска
+    keyboard = {
+        "inline_keyboard": [
+            [{"text": "Ежегодный", "callback_data": "vac_type:ежегодный"}],
+            [{"text": "Дополнительный", "callback_data": "vac_type:дополнительный"}],
+            [{"text": "Учебный", "callback_data": "vac_type:учебный"}],
+            [{"text": "Без сохранения зарплаты", "callback_data": "vac_type:без_зарплаты"}]
+        ]
+    }
+    
+    await message.answer(
+        f"✅ Дата окончания: {message.text}\n\n"
+        "Выберите тип отпуска:",
+        reply_markup=keyboard
+    )
+    await state.set_state(VacationOrderState.vacation_type)
+
+@router.callback_query(F.data.startswith("vac_type:"))
+async def process_vacation_type(callback: CallbackQuery, state: FSMContext):
+    """Обработка типа отпуска"""
+    vacation_type = callback.data.split(":")[1]
+    await state.update_data(vacation_type=vacation_type)
+    
+    await callback.message.edit_text(
+        f"✅ Тип отпуска: {vacation_type}\n\n"
+        "Введите причину отпуска (или нажмите Пропустить):"
+    )
+    await state.set_state(VacationOrderState.reason)
+    await callback.answer()
+
+@router.message(VacationOrderState.reason)
+async def process_reason(message: Message, state: FSMContext):
+    """Обработка причины отпуска"""
+    reason = message.text if message.text.lower() != "пропустить" else ""
+    await state.update_data(reason=reason)
+    
+    # Показываем сводку данных
+    data = await state.get_data()
+    
+    summary = (
+        f"📄 <b>Сводка данных приказа</b>\n\n"
+        f"👤 Сотрудник: {data['employee_name']}\n"
+        f"📅 Начало: {data['start_date']}\n"
+        f"📅 Окончание: {data['end_date']}\n"
+        f"🎯 Тип: {data['vacation_type']}\n"
+        f"📝 Причина: {reason if reason else 'Не указана'}\n\n"
+        f"✅ Создать приказ?"
+    )
+    
+    keyboard = {
+        "inline_keyboard": [
+            [{"text": "✅ Создать", "callback_data": "vac_order:create"}],
+            [{"text": "❌ Отмена", "callback_data": "vac_order:cancel"}]
+        ]
+    }
+    
+    await message.answer(summary, reply_markup=keyboard, parse_mode="HTML")
+    await state.set_state(VacationOrderState.confirm)
+
+@router.callback_query(F.data == "vac_order:create")
+async def create_vacation_order(callback: CallbackQuery, state: FSMContext):
+    """Создание отпускного приказа"""
+    data = await state.get_data()
+    
+    vacation_creator = get_vacation_creator()
+    result = await vacation_creator.create_vacation_order(
+        employee_name=data['employee_name'],
+        start_date=data['start_date'],
+        end_date=data['end_date'],
+        vacation_type=data['vacation_type'],
+        reason=data.get('reason', '')
+    )
+    
+    if result['success']:
+        order_text = result['order_text']
+        
+        await callback.message.edit_text(
+            f"✅ <b>Приказ создан!</b>\n\n"
+            f"📄 Текст приказа:\n\n"
+            f"<pre>{order_text}</pre>\n\n"
+            f"💡 Приказ будет добавлен в CRM систему",
+            parse_mode="HTML"
+        )
+        
+        # TODO: Сохранить приказ в CRM систему
+        # await save_order_to_crm(order_text, data)
+        
+    else:
+        await callback.message.edit_text(
+            f"❌ <b>Ошибка создания приказа</b>\n\n"
+            f"🔍 {result['error']}",
+            parse_mode="HTML"
+        )
+    
+    await state.clear()
+    await callback.answer()
+
+@router.callback_query(F.data == "vac_order:cancel")
+async def cancel_vacation_order(callback: CallbackQuery, state: FSMContext):
+    """Отмена создания приказа"""
+    await state.clear()
+    await callback.message.edit_text(
+        "❌ Создание приказа отменено",
+        reply_markup=secretary_main_menu()
+    )
+    await callback.answer()
+
+@router.message(Command("recent_documents"))
+async def show_recent_documents(message: Message):
+    """Показать недавно сохраненные документы из CRM"""
+    vacation_creator = get_vacation_creator()
+    documents = await vacation_creator.get_recent_documents(limit=10)
+    
+    if not documents:
+        await message.answer(
+            "📄 <b>Недавно сохраненные документы</b>\n\n"
+            "❌ Документы не найдены",
+            parse_mode="HTML"
+        )
+        return
+    
+    message_text = "📄 <b>Недавно сохраненные документы:</b>\n\n"
+    
+    for i, doc in enumerate(documents, 1):
+        message_text += (
+            f"{i}. <b>{doc['filename']}</b>\n"
+            f"📅 {doc['created_at'].strftime('%d.%m.%Y %H:%M')}\n"
+            f"📊 {doc['size'] // 1024} КБ\n\n"
+        )
+    
+    await message.answer(message_text, parse_mode="HTML")

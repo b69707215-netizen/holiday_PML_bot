@@ -26,3 +26,12 @@ class SearchTeacher(StatesGroup):
 class PMLBroadcast(StatesGroup):
     message_text = State()
     confirm = State()
+
+class VacationOrderState(StatesGroup):
+    """Состояния для создания отпускных приказов через Telegram"""
+    employee_name = State()
+    start_date = State()
+    end_date = State()
+    vacation_type = State()
+    reason = State()
+    confirm = State()
