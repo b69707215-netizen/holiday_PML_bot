@@ -3,7 +3,7 @@ import logging
 from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 from config import BOT_TOKEN
-from database import init_db
+from database import init_db, SessionLocal, User
 from handlers import common_router, teacher_router, secretary_router
 
 logging.basicConfig(
@@ -30,8 +30,34 @@ async def main():
     
     logger.info("Bot started successfully!")
     
+    # Send startup notification to all users
+    await send_startup_notification(bot)
+    
     # Start polling
     await dp.start_polling(bot)
+
+async def send_startup_notification(bot: Bot):
+    """Send startup notification to all registered users"""
+    async with SessionLocal() as session:
+        from sqlalchemy import select
+        result = await session.execute(select(User))
+        users = result.scalars().all()
+        
+        for user in users:
+            try:
+                await bot.send_message(
+                    user.telegram_id,
+                    "🟢 <b>Бот перезапущен и готов к работе!</b>\n\n"
+                    "📋 Доступные команды:\n"
+                    "• /start - Главное меню\n"
+                    "• /pml - Подписаться на рассылки\n"
+                    "• /pml_off - Отписаться от рассылок\n\n"
+                    "✅ Все функции работают в штатном режиме!",
+                    parse_mode="HTML"
+                )
+                logger.info(f"Startup notification sent to {user.telegram_id}")
+            except Exception as e:
+                logger.error(f"Failed to send startup notification to {user.telegram_id}: {e}")
 
 if __name__ == "__main__":
     try:
