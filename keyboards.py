@@ -1,78 +1,78 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
 
-# Main menu for teachers
+# Головне меню для вчителів
 def teacher_main_menu():
     builder = ReplyKeyboardBuilder()
-    builder.button(text="📋 Мои отпускные дни")
-    builder.button(text="📝 Подать заявку на отпуск")
+    builder.button(text="📋 Мої відпускні дні")
+    builder.button(text="📝 Подати заявку на відпустку")
     builder.adjust(2)
     return builder.as_markup(resize_keyboard=True)
 
-# Main menu for secretary
+# Головне меню для секретаря
 def secretary_main_menu():
     builder = ReplyKeyboardBuilder()
-    builder.button(text="📨 Новые заявки")
-    builder.button(text="🔍 Найти учителя по ФИО")
-    builder.button(text="📢 Рассылка PML")
-    builder.button(text="📋 CRM Приказы")
-    builder.button(text="📤 Загрузить в CRM")
-    builder.button(text="👥 Список сотрудников")
-    builder.button(text="📊 Мониторинг отпусков")
-    builder.button(text="📄 Создать приказ")
+    builder.button(text="📨 Нові заявки")
+    builder.button(text="🔍 Знайти вчителя за ПІБ")
+    builder.button(text="📢 Розсилка PML")
+    builder.button(text="📋 CRM Накази")
+    builder.button(text="📤 Завантажити в CRM")
+    builder.button(text="👥 Список співробітників")
+    builder.button(text="📊 Моніторинг відпусток")
+    builder.button(text="📄 Створити наказ")
     builder.adjust(2)
     return builder.as_markup(resize_keyboard=True)
 
-# Role selection during registration
+# Вибір ролі під час реєстрації
 def role_selection():
     builder = ReplyKeyboardBuilder()
-    builder.button(text="👨‍🏫 Учитель")
-    builder.button(text="👩‍💼 Секретарь")
+    builder.button(text="👨‍🏫 Вчитель")
+    builder.button(text="👩‍💼 Секретар")
     builder.adjust(2)
     return builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
 
-# Vacation request approval/rejection
+# Схвалення / відхилення заявки на відпустку
 def vacation_approval(vacation_id: int):
     builder = InlineKeyboardBuilder()
     builder.button(
-        text="✅ Одобрить",
+        text="✅ Схвалити",
         callback_data=f"approve_vacation:{vacation_id}"
     )
     builder.button(
-        text="❌ Отклонить",
+        text="❌ Відхилити",
         callback_data=f"reject_vacation:{vacation_id}"
     )
     builder.adjust(2)
     return builder.as_markup()
 
-# Order type selection
+# Вибір типу наказу
 def order_type_selection():
     builder = ReplyKeyboardBuilder()
-    builder.button(text="🏖️ Отпуск")
+    builder.button(text="🏖️ Відпустка")
     builder.button(text="🌸 Весняні канікули")
     builder.button(text="💪 Молодь за здоров'я")
     builder.button(text="🛡️ 16 днів проти насильства")
     builder.button(text="🏕️ Джура")
-    builder.button(text="❌ Отмена")
+    builder.button(text="❌ Скасувати")
     builder.adjust(2)
     return builder.as_markup(resize_keyboard=True)
 
-# Cancel button
+# Кнопка скасування
 def cancel_button():
     builder = ReplyKeyboardBuilder()
-    builder.button(text="❌ Отмена")
+    builder.button(text="❌ Скасувати")
     return builder.as_markup(resize_keyboard=True)
 
-# Back button
+# Кнопка назад
 def back_button():
     builder = ReplyKeyboardBuilder()
     builder.button(text="⬅️ Назад")
     return builder.as_markup(resize_keyboard=True)
 
-# PML broadcast confirmation
+# Підтвердження розсилки PML
 def pml_broadcast_confirm():
     builder = ReplyKeyboardBuilder()
-    builder.button(text="✅ Отправить рассылку")
-    builder.button(text="❌ Отмена")
+    builder.button(text="✅ Надіслати розсилку")
+    builder.button(text="❌ Скасувати")
     builder.adjust(2)
     return builder.as_markup(resize_keyboard=True)

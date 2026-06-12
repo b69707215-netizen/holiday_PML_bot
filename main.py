@@ -57,12 +57,12 @@ async def send_startup_notification(bot: Bot):
             try:
                 await bot.send_message(
                     user.telegram_id,
-                    "🟢 <b>Бот перезапущен и готов к работе!</b>\n\n"
-                    "📋 Доступные команды:\n"
-                    "• /start - Главное меню\n"
-                    "• /pml - Подписаться на рассылки\n"
-                    "• /pml_off - Отписаться от рассылок\n\n"
-                    "✅ Все функции работают в штатном режиме!",
+                    "🟢 <b>Бот перезапущено та готовий до роботи!</b>\n\n"
+                    "📋 Доступні команди:\n"
+                    "• /start — Головне меню\n"
+                    "• /pml — Підписатися на розсилки\n"
+                    "• /pml_off — Відписатися від розсилок\n\n"
+                    "✅ Усі функції працюють у штатному режимі!",
                     parse_mode="HTML"
                 )
                 logger.info(f"Startup notification sent to {user.telegram_id}")
