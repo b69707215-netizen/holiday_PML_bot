@@ -37,11 +37,10 @@ def vice_principal_main_menu():
     builder.adjust(2)
     return builder.as_markup(resize_keyboard=True)
 
-# Головне меню для директора — тільки 3 кнопки
+# Головне меню для директора — тільки 2 кнопки
 def director_main_menu():
     builder = ReplyKeyboardBuilder()
     builder.button(text="👤 Призначити персонал")
-    builder.button(text="📋 Створити накази")
     builder.button(text="🏖 Відпустки")
     builder.adjust(1)
     return builder.as_markup(resize_keyboard=True)
