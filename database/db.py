@@ -1,5 +1,6 @@
 import os
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy import text
 from database.models import Base
 from config import DATABASE_URL
 
@@ -21,7 +22,6 @@ try:
     clean_url = db_url.replace("sqlite:///", "").replace("sqlite://", "")
     if clean_url:
         db_dir = os.path.dirname(clean_url) or "."
-        # If the directory exists, check write permissions
         if os.path.exists(db_dir):
             if not os.access(db_dir, os.W_OK):
                 raise PermissionError(f"Directory {db_dir} is not writable")
@@ -42,11 +42,26 @@ SessionLocal = async_sessionmaker(
     expire_on_commit=False
 )
 
+async def _run_migrations(conn):
+    """Додаємо нові колонки якщо їх ще немає (SQLite ALTER TABLE)"""
+    # Додати appointed_by якщо відсутнє
+    try:
+        await conn.execute(text(
+            "ALTER TABLE users ADD COLUMN appointed_by INTEGER REFERENCES users(id)"
+        ))
+        print("Migration: added column 'appointed_by' to users")
+    except Exception:
+        pass  # Колонка вже існує — ігноруємо
+
+    # Оновити enum: SQLite зберігає як TEXT — нові значення просто запишуться
+    # Нічого додаткового не потрібно для DIRECTOR/VICE_PRINCIPAL
+
 async def init_db():
     global engine, SessionLocal
     try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+            await _run_migrations(conn)
     except Exception as e:
         print(f"Warning: Failed to initialize DB with {db_url} ({e}). Falling back to local school_bot.db")
         db_url_fallback = "sqlite:///school_bot.db"
@@ -61,3 +76,4 @@ async def init_db():
         )
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+            await _run_migrations(conn)

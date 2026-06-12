@@ -359,7 +359,7 @@ async def start_pml_broadcast(message: Message, state: FSMContext):
         )
         user = result.scalar_one_or_none()
 
-        if not user or user.role != UserRole.SECRETARY:
+        if not user or user.role not in (UserRole.SECRETARY, UserRole.VICE_PRINCIPAL, UserRole.DIRECTOR):
             await message.answer("❌ Ця функція доступна лише секретарю.")
             return
 

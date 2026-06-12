@@ -8,6 +8,8 @@ Base = declarative_base()
 class UserRole(enum.Enum):
     TEACHER = "teacher"
     SECRETARY = "secretary"
+    VICE_PRINCIPAL = "vice_principal"
+    DIRECTOR = "director"
 
 class VacationStatus(enum.Enum):
     PENDING = "pending"
@@ -25,6 +27,7 @@ class User(Base):
     vacation_days_total = Column(Integer, default=24)
     vacation_days_used = Column(Integer, default=0)
     pml_subscribed = Column(Integer, default=0)  # 0 = not subscribed, 1 = subscribed
+    appointed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     vacations = relationship("Vacation", back_populates="user")

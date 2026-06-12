@@ -8,6 +8,9 @@ BOT_TOKEN = os.getenv("BOT_TOKEN", "8929817821:AAGsy-296jmNKWVcFt0CCRRINcRL1HluO
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///data/bot.db")
 SECRETARY_TELEGRAM_ID = os.getenv("SECRETARY_TELEGRAM_ID", "5091636029,5063427314")
 
+# Директор — тільки один, жорстко прописаний
+DIRECTOR_ID = 5063427314
+
 # Parse multiple secretary IDs
 SECRETARY_IDS = []
 if SECRETARY_TELEGRAM_ID:

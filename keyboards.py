@@ -23,7 +23,45 @@ def secretary_main_menu():
     builder.adjust(2)
     return builder.as_markup(resize_keyboard=True)
 
-# Вибір ролі під час реєстрації
+# Головне меню для заступника директора
+def vice_principal_main_menu():
+    builder = ReplyKeyboardBuilder()
+    builder.button(text="📨 Нові заявки")
+    builder.button(text="🔍 Знайти вчителя за ПІБ")
+    builder.button(text="📢 Розсилка PML")
+    builder.button(text="📋 CRM Накази")
+    builder.button(text="📤 Завантажити в CRM")
+    builder.button(text="👥 Список співробітників")
+    builder.button(text="📊 Моніторинг відпусток")
+    builder.button(text="📄 Створити наказ")
+    builder.adjust(2)
+    return builder.as_markup(resize_keyboard=True)
+
+# Головне меню для директора
+def director_main_menu():
+    builder = ReplyKeyboardBuilder()
+    builder.button(text="📨 Нові заявки")
+    builder.button(text="🔍 Знайти вчителя за ПІБ")
+    builder.button(text="📢 Розсилка PML")
+    builder.button(text="📋 CRM Накази")
+    builder.button(text="📤 Завантажити в CRM")
+    builder.button(text="👥 Список співробітників")
+    builder.button(text="📊 Моніторинг відпусток")
+    builder.button(text="📄 Створити наказ")
+    builder.button(text="👔 Призначити заступника")
+    builder.button(text="🗂️ Заступники")
+    builder.adjust(2)
+    return builder.as_markup(resize_keyboard=True)
+
+# Кнопка "Поділитися контактом" при реєстрації
+def request_contact_keyboard():
+    return ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text="📱 Поділитися контактом", request_contact=True)]],
+        resize_keyboard=True,
+        one_time_keyboard=True
+    )
+
+# Вибір ролі під час реєстрації (тільки вчитель/секретар — директор авто)
 def role_selection():
     builder = ReplyKeyboardBuilder()
     builder.button(text="👨‍🏫 Вчитель")
@@ -76,3 +114,11 @@ def pml_broadcast_confirm():
     builder.button(text="❌ Скасувати")
     builder.adjust(2)
     return builder.as_markup(resize_keyboard=True)
+
+# Inline: підтвердження призначення заступника
+def confirm_appoint_keyboard(user_id: int):
+    builder = InlineKeyboardBuilder()
+    builder.button(text="✅ Підтвердити", callback_data=f"appoint_vice:{user_id}")
+    builder.button(text="❌ Скасувати", callback_data="appoint_cancel")
+    builder.adjust(2)
+    return builder.as_markup()

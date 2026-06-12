@@ -2,7 +2,7 @@ from aiogram.fsm.state import State, StatesGroup
 
 class Registration(StatesGroup):
     full_name = State()
-    phone = State()
+    # phone береться з Telegram-контакту (F.contact) — окремий стан не потрібен
     role = State()
 
 class VacationRequest(StatesGroup):
@@ -28,10 +28,15 @@ class PMLBroadcast(StatesGroup):
     confirm = State()
 
 class VacationOrderState(StatesGroup):
-    """Состояния для создания отпускных приказов через Telegram"""
+    """Стани для створення відпускних наказів через Telegram"""
     employee_name = State()
     start_date = State()
     end_date = State()
     vacation_type = State()
     reason = State()
+    confirm = State()
+
+class AppointVice(StatesGroup):
+    """Директор призначає заступника"""
+    search_name = State()
     confirm = State()
