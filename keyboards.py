@@ -37,20 +37,13 @@ def vice_principal_main_menu():
     builder.adjust(2)
     return builder.as_markup(resize_keyboard=True)
 
-# Головне меню для директора
+# Головне меню для директора — тільки 3 кнопки
 def director_main_menu():
     builder = ReplyKeyboardBuilder()
-    builder.button(text="📨 Нові заявки")
-    builder.button(text="🔍 Знайти вчителя за ПІБ")
-    builder.button(text="📢 Розсилка PML")
-    builder.button(text="📋 CRM Накази")
-    builder.button(text="📤 Завантажити в CRM")
-    builder.button(text="👥 Список співробітників")
-    builder.button(text="📊 Моніторинг відпусток")
-    builder.button(text="📄 Створити наказ")
-    builder.button(text="👔 Призначити заступника")
-    builder.button(text="🗂️ Заступники")
-    builder.adjust(2)
+    builder.button(text="👤 Призначити персонал")
+    builder.button(text="📋 Створити накази")
+    builder.button(text="🏖 Відпустки")
+    builder.adjust(1)
     return builder.as_markup(resize_keyboard=True)
 
 # Кнопка "Поділитися контактом" при реєстрації
@@ -115,10 +108,27 @@ def pml_broadcast_confirm():
     builder.adjust(2)
     return builder.as_markup(resize_keyboard=True)
 
-# Inline: підтвердження призначення заступника
-def confirm_appoint_keyboard(user_id: int):
+# Inline: підтвердження призначення заступника / секретаря
+def confirm_appoint_keyboard(user_id: int, role: str = "vice"):
     builder = InlineKeyboardBuilder()
-    builder.button(text="✅ Підтвердити", callback_data=f"appoint_vice:{user_id}")
+    builder.button(text="✅ Підтвердити", callback_data=f"appoint_{role}:{user_id}")
     builder.button(text="❌ Скасувати", callback_data="appoint_cancel")
     builder.adjust(2)
+    return builder.as_markup()
+
+# Inline: вибір ролі для призначення
+def appoint_role_keyboard():
+    builder = InlineKeyboardBuilder()
+    builder.button(text="👔 Заступник директора", callback_data="appoint_role:vice")
+    builder.button(text="👩‍💼 Секретар", callback_data="appoint_role:secretary")
+    builder.adjust(1)
+    return builder.as_markup()
+
+# Inline: список схвалених відпусток для генерації наказу
+def approved_vacations_keyboard(vacations: list):
+    builder = InlineKeyboardBuilder()
+    for v in vacations:
+        label = f"{v.user.full_name} | {v.start_date} – {v.end_date} ({v.days_count} дн.)"
+        builder.button(text=label, callback_data=f"gen_order:{v.id}")
+    builder.adjust(1)
     return builder.as_markup()
