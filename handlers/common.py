@@ -125,6 +125,7 @@ async def _register_user(message: Message, state: FSMContext, full_name: str, ph
 
         new_user = User(
             telegram_id=message.from_user.id,
+            username=message.from_user.username,  # може бути None
             full_name=full_name,
             phone=phone,
             role=role

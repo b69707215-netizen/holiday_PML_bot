@@ -53,6 +53,15 @@ async def _run_migrations(conn):
     except Exception:
         pass  # Колонка вже існує — ігноруємо
 
+    # Додати username якщо відсутнє
+    try:
+        await conn.execute(text(
+            "ALTER TABLE users ADD COLUMN username VARCHAR(255)"
+        ))
+        print("Migration: added column 'username' to users")
+    except Exception:
+        pass  # вже є
+
     # Оновити enum: SQLite зберігає як TEXT — нові значення просто запишуться
     # Нічого додаткового не потрібно для DIRECTOR/VICE_PRINCIPAL
 

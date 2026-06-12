@@ -34,12 +34,15 @@ async def appoint_staff_start(message: Message, state: FSMContext):
         return
 
     await message.answer(
-        "📱 Введіть номер телефону співробітника (у форматі +380...):\n\n"
-        "Система знайде людину і запитає яку роль призначити.",
-        reply_markup=cancel_button()
+        "🔍 Введіть одне з наступного:\n\n"
+        "• <b>Номер телефону</b> — +380671234567\n"
+        "• <b>@username</b> — @ivan_petrov\n"
+        "• <b>ПІБ</b> — Іванов Іван\n\n"
+        "Бот знайде людину і запитає яку роль призначити.",
+        reply_markup=cancel_button(),
+        parse_mode="HTML"
     )
     await state.set_state(AppointVice.search_name)
-    await state.update_data(appoint_mode="phone")
 
 @router.message(AppointVice.search_name, F.text == "❌ Скасувати")
 async def appoint_cancel_text(message: Message, state: FSMContext):
@@ -47,58 +50,79 @@ async def appoint_cancel_text(message: Message, state: FSMContext):
     await message.answer("Скасовано.", reply_markup=director_main_menu())
 
 @router.message(AppointVice.search_name)
-async def appoint_search_by_phone(message: Message, state: FSMContext):
+async def appoint_search(message: Message, state: FSMContext):
     query = message.text.strip()
-
-    # Нормалізуємо телефон
-    phone = re.sub(r"[^\d+]", "", query)
-    if not phone.startswith("+"):
-        phone = "+" + phone
+    user = None
 
     async with SessionLocal() as session:
-        result = await session.execute(
-            select(User).where(User.phone == phone)
-        )
-        user = result.scalar_one_or_none()
 
-    if not user:
-        # Пробуємо по ПІБ як fallback
-        async with SessionLocal() as session:
+        # 1. По @username
+        if query.startswith("@"):
+            uname = query.lstrip("@").lower()
             result = await session.execute(
-                select(User).where(User.full_name.ilike(f"%{query}%"))
+                select(User).where(User.username.ilike(uname))
+            )
+            user = result.scalar_one_or_none()
+
+        # 2. По номеру телефону
+        elif re.match(r"^[\d\+\s\-\(\)]+$", query):
+            phone = re.sub(r"[^\d+]", "", query)
+            if not phone.startswith("+"):
+                phone = "+" + phone
+            result = await session.execute(
+                select(User).where(User.phone == phone)
+            )
+            user = result.scalar_one_or_none()
+
+            # Спробуємо без + якщо не знайшли
+            if not user:
+                result = await session.execute(
+                    select(User).where(User.phone == phone.lstrip("+"))
+                )
+                user = result.scalar_one_or_none()
+
+        # 3. По ПІБ
+        if not user:
+            result = await session.execute(
+                select(User).where(User.full_name.ilike(f"%{query.lstrip('@')}%"))
             )
             users = result.scalars().all()
 
-        if not users:
-            await message.answer(
-                "❌ Співробітника не знайдено.\n"
-                "Перевірте номер або введіть ПІБ:"
-            )
-            return
+            if not users:
+                await message.answer(
+                    "❌ Не знайдено. Спробуйте:\n"
+                    "• номер телефону (+380...)\n"
+                    "• @username\n"
+                    "• ПІБ або частину прізвища"
+                )
+                return
 
-        if len(users) == 1:
-            user = users[0]
-        else:
-            lines = [f"• {u.full_name} — {u.phone}" for u in users[:10]]
-            await message.answer(
-                "Знайдено кілька:\n" + "\n".join(lines) +
-                "\n\nУточніть номер телефону:"
-            )
-            return
+            if len(users) == 1:
+                user = users[0]
+            else:
+                lines = []
+                for u in users[:10]:
+                    uname_str = f"@{u.username}" if u.username else u.phone
+                    lines.append(f"• {u.full_name} ({uname_str})")
+                await message.answer(
+                    f"Знайдено {len(users[:10])} осіб, уточніть:\n\n" + "\n".join(lines)
+                )
+                return
 
-    # Знайдено — показуємо і питаємо роль
-    role_label = {
+    # Знайдено одну людину
+    role_labels = {
         UserRole.DIRECTOR: "Директор",
         UserRole.VICE_PRINCIPAL: "Заступник директора",
         UserRole.SECRETARY: "Секретар",
         UserRole.TEACHER: "Вчитель",
-    }.get(user.role, user.role.value)
-
+    }
+    uname_str = f"@{user.username}" if user.username else "—"
     await state.update_data(target_id=user.telegram_id, target_name=user.full_name)
     await message.answer(
         f"👤 <b>{user.full_name}</b>\n"
         f"📱 {user.phone}\n"
-        f"Поточна роль: {role_label}\n\n"
+        f"✈️ Telegram: {uname_str}\n"
+        f"Роль зараз: {role_labels.get(user.role, user.role.value)}\n\n"
         "Оберіть нову роль:",
         reply_markup=appoint_role_keyboard(),
         parse_mode="HTML"
