@@ -2,7 +2,7 @@ from aiogram.fsm.state import State, StatesGroup
 
 class Registration(StatesGroup):
     full_name = State()
-    # phone береться з Telegram-контакту (F.contact) — окремий стан не потрібен
+    phone = State()   # чекаємо контакт (F.contact)
     role = State()
 
 class VacationRequest(StatesGroup):

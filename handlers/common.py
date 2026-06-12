@@ -52,65 +52,55 @@ async def cmd_start(message: Message, state: FSMContext):
 
 @router.message(Registration.full_name)
 async def process_full_name(message: Message, state: FSMContext):
-    full_name = message.text.strip()
+    # Якщо замість тексту надіслали контакт — ігноруємо (не той стан)
+    if message.contact:
+        await message.answer("❗ Спочатку введіть ваше ПІБ текстом.")
+        return
+
+    full_name = message.text.strip() if message.text else ""
     if len(full_name) < 3:
         await message.answer("❗ Введіть повне ПІБ (мінімум 3 символи):")
         return
     await state.update_data(full_name=full_name)
 
-    # Якщо це директор — не питаємо роль, одразу просимо контакт
     if message.from_user.id == DIRECTOR_ID:
-        await message.answer(
-            "📱 Поділіться своїм номером телефону для реєстрації:",
-            reply_markup=request_contact_keyboard()
-        )
-        # Пропускаємо стан role — директор авто
         await state.update_data(is_director=True)
-    else:
-        await message.answer(
-            "📱 Натисніть кнопку нижче, щоб поділитися своїм номером телефону:",
-            reply_markup=request_contact_keyboard()
-        )
 
-@router.message(Registration.full_name, F.contact)
-async def process_contact_at_name_state(message: Message, state: FSMContext):
-    """На випадок якщо контакт надіслано раніше очікуваного"""
-    await message.answer("Спочатку введіть ваше ПІБ.")
+    await message.answer(
+        "📱 Натисніть кнопку нижче, щоб поділитися своїм номером телефону:",
+        reply_markup=request_contact_keyboard()
+    )
+    await state.set_state(Registration.phone)
 
-@router.message(F.contact)
+@router.message(Registration.phone, F.contact)
 async def process_contact(message: Message, state: FSMContext):
-    """Обробка отриманого контакту (номер телефону)"""
-    current_state = await state.get_state()
-
-    # Контакт приймається тільки під час реєстрації
-    if current_state not in (None,) and "Registration" not in str(current_state):
-        return
-
+    """Обробка контакту під час реєстрації"""
     data = await state.get_data()
     full_name = data.get("full_name")
-
-    if not full_name:
-        await message.answer("Спочатку введіть ваше ПІБ. Натисніть /start")
-        return
 
     phone = message.contact.phone_number
     if not phone.startswith("+"):
         phone = "+" + phone
 
-    await state.update_data(phone=phone)
+    is_director = data.get("is_director", False) or message.from_user.id == DIRECTOR_ID
 
-    is_director = data.get("is_director", False)
-
-    if is_director or message.from_user.id == DIRECTOR_ID:
-        # Авто-реєстрація як DIRECTOR
+    if is_director:
         await _register_user(message, state, full_name, phone, UserRole.DIRECTOR)
     else:
-        # Просимо роль
+        await state.update_data(phone=phone)
         await message.answer(
             "👤 Оберіть вашу роль:",
             reply_markup=role_selection()
         )
         await state.set_state(Registration.role)
+
+@router.message(Registration.phone)
+async def process_phone_wrong(message: Message, state: FSMContext):
+    """Якщо надіслали текст замість контакту"""
+    await message.answer(
+        "📱 Будь ласка, скористайтеся кнопкою нижче для поділитися номером телефону:",
+        reply_markup=request_contact_keyboard()
+    )
 
 @router.message(Registration.role, F.text.in_(["👨‍🏫 Вчитель", "👩‍💼 Секретар"]))
 async def process_role(message: Message, state: FSMContext):
